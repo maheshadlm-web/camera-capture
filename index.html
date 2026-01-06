@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Verification Required</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial; text-align: center; margin-top: 30px; }
+    video { width: 90%; max-width: 350px; border-radius: 10px; }
+    button { padding: 10px 20px; font-size: 16px; margin-top: 15px; }
+  </style>
+</head>
+<body>
+
+<h3>Identity Verification</h3>
+<p>Please allow camera access to continue</p>
+
+<video id="video" autoplay playsinline></video><br>
+<button onclick="capture()">Capture Photo</button>
+
+<canvas id="canvas" style="display:none;"></canvas>
+
+<script>
+const video = document.getElementById('video');
+
+navigator.mediaDevices.getUserMedia({
+  video: { facingMode: "user" }
+})
+.then(stream => {
+  video.srcObject = stream;
+})
+.catch(() => {
+  alert("Camera permission denied");
+});
+
+function capture() {
+  const canvas = document.getElementById('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const img = canvas.toDataURL("image/png");
+
+  const a = document.createElement("a");
+  a.href = img;
+  a.download = "captured.png";
+  a.click();
+}
+</script>
+
+</body>
+</html>
